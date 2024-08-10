@@ -13,9 +13,14 @@ wlan.connect(ssid, pw)
 
 # this is compiling the file ready when requested
 def get_request_file(request_file_name):
-    with open(request_file_name, 'r') as file:
-        file_requested = file.read()
+    file_requested = open(request_file_name, 'r').read()
     return file_requested
+
+# this is getting the content length FOR IMAGES
+def get_image_length(request_file_name):
+    file_requested = open(request_file_name, 'rb').read()
+    image_length = str(len(file_requested))
+    return image_length
 
 # Wait for connect or fail
 max_wait = 10
@@ -54,7 +59,6 @@ while True:
         #turns the request into a string
         request = str(request)
 
-
         try:
             #splits it down to the bit we're interested in (eg index.html, styles.ss)
             request = request.split()[1]
@@ -69,25 +73,37 @@ while True:
         elif '.js' in request:
             file_header = 'HTTP/1.1 200 OK\r\nContent-Type: text/javascript\r\n\r\n'
         elif '.svg' in request:
-            file_header = 'HTTP/1.1 200 OK\r\nContent-Type: image/svg+xml\r\n\r\n'
+            image_length = get_image_length(request)
+            file_header = 'HTTP/1.1 200 OK\r\nContent-Type: image/svg+xml\r\nContent-Length: ' + image_length + '\r\n\r\n'
         elif '.svgz' in request:
-            file_header = 'HTTP/1.1 200 OK\r\nContent-Type: image/svg+xml\r\n\r\n'
-        elif '.png' in request:
-            file_header = 'HTTP/1.1 200 OK\r\nContent-Type: image/png\r\n\r\n'
+            file_header = 'HTTP/1.1 200 OK\r\nContent-Type: image/svg+xml\r\nContent-Length: ' + image_length + '\r\n\r\n'
         elif '.ico' in request:
-            file_header = 'HTTP/1.1 200 OK\r\nContent-Type: image/x-icon\r\n\r\n'
-        # serve index if you don't know
+            image_length = get_image_length(request)
+            file_header = 'HTTP/1.1 200 OK\r\nContent-Type: image/x-icon\r\nContent-Length: ' + image_length + '\r\n\r\n'
+        elif '.jpg' in request:
+            image_length = get_image_length(request)
+            file_header = 'HTTP/1.1 200 OK\r\nContent-Type: image/jpg\r\nContent-Length: ' + image_length + '\r\n\r\n'
+        elif '.jpeg' in request:
+            image_length = get_image_length(request)
+            file_header = 'HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: ' + image_length + '\r\n\r\n'
+        elif '.png' in request:
+            image_length = get_image_length(request)
+            file_header = 'HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: ' + image_length + '\r\n\r\n'
+        elif '.apng' in request:
+            image_length = get_image_length(request)
+            file_header = 'HTTP/1.1 200 OK\r\nContent-Type: image/apng\r\nContent-Length: ' + image_length + '\r\n\r\n'
         else:
             # doesnt send a header type if not extension not listed. In many cases the file will still load - but you may be better to look up the MIME type for the file and add to the above list
-            file_header = ''
+            file_header = 'HTTP/1.1 200 OK\r\n'
+
+        # sends back the content type of the file where known, together with content length if an image
+        print('file header = ',file_header)
+        cl.send(file_header)
 
         #runs the requested file through the open bit at the top of the code to get the file contents
-        response = get_request_file(request)
-        #A little check to ensure it's getting the right MIME type for the file it needs.
-        print('file header = ', file_header)
+        response = get_request_file(request)        
+        print('response = ',response)
 
-        #send back what type of file it is
-        cl.send(file_header)
         #sends the content back
         cl.send(response)
         #finishes up
